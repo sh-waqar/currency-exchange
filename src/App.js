@@ -1,11 +1,19 @@
 import React from 'react';
 import 'normalize.css';
 
+import './index.css';
+
+import Container from './components/Container';
+import AppShell from './components/AppShell';
+import Exchange from './pages/Exchange';
+
 function App() {
   return (
-    <>
-      <h1>Currency Exchange</h1>
-    </>
+    <Container>
+      <AppShell>
+        <Exchange />
+      </AppShell>
+    </Container>
   );
 }
 
