@@ -1,5 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import { connect } from 'react-redux';
+
+import {
+  exchangeCurrency,
+  swapCurrencyPair,
+  isExchangeDisabled
+} from '../redux/modules/exchange';
 
 import Header from '../components/Header';
 import PocketWrapper from '../components/PocketWrapper';
@@ -21,7 +28,7 @@ const InfoRow = styled.div`
   padding: 0 12px;
 `;
 
-const Swap = styled.button`
+const SwapButton = styled.button`
   width: 32px;
   height: 32px;
   background-color: #fff;
@@ -55,25 +62,51 @@ const ExchangeButton = styled.button`
   font-size: 16px;
   cursor: pointer;
   box-shadow: 0px 4px 8px 2px #eb008d52;
+  transition: background-color 250ms ease-in-out;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+
+    &:hover {
+      background-color: ${colors.pink};
+    }
+  }
+  &:hover {
+    background-color: #cc097e;
+  }
 `;
 
-function Exchange() {
-  return (
-    <>
-      <Header />
-      <ContentWrapper>
-        <div>
-          <PocketWrapper origin="source" />
-          <InfoRow>
-            <Swap>&#8645;</Swap>
-            <ExchangeRate>$1 = EUR 22</ExchangeRate>
-          </InfoRow>
-          <PocketWrapper origin="target" />
-        </div>
-        <ExchangeButton>Exchange</ExchangeButton>
-      </ContentWrapper>
-    </>
-  );
-}
+const Exchange = ({ exchangeDisabled, exchangeCurrency, swapPockets }) => (
+  <>
+    <Header />
+    <ContentWrapper>
+      <div>
+        <PocketWrapper origin="source" />
+        <InfoRow>
+          <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
+          <ExchangeRate>$1 = EUR 22</ExchangeRate>
+        </InfoRow>
+        <PocketWrapper origin="target" />
+      </div>
+      <ExchangeButton disabled={exchangeDisabled} onClick={exchangeCurrency}>
+        Exchange
+      </ExchangeButton>
+    </ContentWrapper>
+  </>
+);
 
-export default Exchange;
+const mapStateToProps = ({ exchange }) => ({
+  exchangeDisabled: isExchangeDisabled({ exchange })
+});
+
+const mapDispatchToProps = dispatch => ({
+  exchangeCurrency: () => {
+    dispatch(exchangeCurrency());
+  },
+  swapPockets: () => {
+    dispatch(swapCurrencyPair());
+  }
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Exchange);

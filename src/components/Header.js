@@ -22,13 +22,11 @@ const Title = styled.h1`
   margin-left: 10px;
 `;
 
-function Header() {
-  return (
-    <Wrapper>
-      <CloseBtn>&times;</CloseBtn>
-      <Title>Exchange</Title>
-    </Wrapper>
-  );
-}
+const Header = () => (
+  <Wrapper>
+    <CloseBtn>&times;</CloseBtn>
+    <Title>Exchange</Title>
+  </Wrapper>
+);
 
 export default Header;
