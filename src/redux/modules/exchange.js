@@ -1,3 +1,5 @@
+import Big from 'big.js';
+
 const initialState = {
   pockets: {
     EUR: {
@@ -23,6 +25,9 @@ const initialState = {
   }
 };
 
+// Helpers
+const fixDecimalPoints = number => Math.floor(number * 100) / 100;
+
 // Actions
 
 const CHANGE_AMOUNT = 'exchange/CHANGE_AMOUNT';
@@ -45,7 +50,7 @@ export function changeAmount(origin, amount) {
   return {
     type: CHANGE_AMOUNT,
     origin,
-    amount: amount ? parseFloat(amount) : ''
+    amount
   };
 }
 
@@ -91,18 +96,25 @@ export default function reducer(state = initialState, action) {
 
     case CHANGE_AMOUNT: {
       const { origin, amount } = action;
+      const opposite = origin === 'source' ? 'target' : 'source';
 
-      if (amount < 0) {
-        return state;
+      if (amount === '') {
+        return {
+          ...state,
+          currentValue: {
+            [origin]: amount,
+            [opposite]: state.currentValue[opposite]
+          }
+        };
       }
 
-      const opposite = origin === 'source' ? 'target' : 'source';
+      const fixedAmount = fixDecimalPoints(amount);
 
       return {
         ...state,
         currentValue: {
-          [origin]: amount,
-          [opposite]: amount * 1.2
+          [origin]: Big(fixedAmount),
+          [opposite]: fixDecimalPoints(Big(fixedAmount).times(1.2))
         }
       };
     }
@@ -120,11 +132,13 @@ export default function reducer(state = initialState, action) {
           ...state.pockets,
           [sourceCurrency]: {
             ...state.pockets[sourceCurrency],
-            amount: state.pockets[sourceCurrency].amount - sourceAmount
+            amount: Big(state.pockets[sourceCurrency].amount).minus(
+              sourceAmount
+            )
           },
           [targetCurrency]: {
             ...state.pockets[targetCurrency],
-            amount: state.pockets[targetCurrency].amount + targetAmount
+            amount: Big(state.pockets[targetCurrency].amount).add(targetAmount)
           }
         },
         currentValue: {
