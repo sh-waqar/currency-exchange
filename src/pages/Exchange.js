@@ -7,10 +7,14 @@ import {
   swapCurrencyPair,
   isExchangeDisabled
 } from '../redux/modules/exchange';
+import { setExchangeRate } from '../redux/modules/rate';
+import { fetchRate } from '../api';
 
 import Header from '../components/Header';
 import PocketWrapper from '../components/PocketWrapper';
-import colors from '../colors';
+import ExchangeButton from '../components/ExchangeButton';
+import ExchangeRate from '../components/ExchangeRate';
+import SwapButton from '../components/SwapButton';
 
 const ContentWrapper = styled.div`
   display: flex;
@@ -28,75 +32,88 @@ const InfoRow = styled.div`
   padding: 0 12px;
 `;
 
-const SwapButton = styled.button`
-  width: 32px;
-  height: 32px;
-  background-color: #fff;
-  border: 2px solid ${colors.gray};
-  font-size: 14px;
-  border-radius: 100%;
-  color: ${colors.blue};
-  text-align: center;
-  cursor: pointer;
-`;
+class Exchange extends React.Component {
+  constructor(props) {
+    super(props);
 
-const ExchangeRate = styled.div`
-  color: ${colors.blue};
-  background-color: #fff;
-  border: 2px solid ${colors.gray};
-  padding: 4px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-`;
+    this.scheduleRateFetcher(this.props.selectedCurrency.source);
+  }
 
-const ExchangeButton = styled.button`
-  background-color: ${colors.pink};
-  color: #fff;
-  font-size: 14px;
-  padding: 12px;
-  width: calc(100% - 36px);
-  margin: 0 18px 20px;
-  border: 0;
-  border-radius: 22px;
-  font-weight: 500;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0px 4px 8px 2px #eb008d52;
-  transition: background-color 250ms ease-in-out;
+  componentDidUpdate({ selectedCurrency }) {
+    const shouldFetch =
+      selectedCurrency.source !== this.props.selectedCurrency.source;
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-
-    &:hover {
-      background-color: ${colors.pink};
+    if (shouldFetch) {
+      this.scheduleRateFetcher(this.props.selectedCurrency.source);
     }
   }
-  &:hover {
-    background-color: #cc097e;
+
+  scheduleRateFetcher = source => {
+    const pockets = Object.keys(this.props.pockets).filter(
+      pocket => pocket !== source
+    );
+
+    // Clear interval instance if already there
+    this.fetcherInstance && clearInterval(this.fetcherInstance);
+
+    this.updateRates(source, pockets);
+    this.fetcherInstance = setInterval(
+      () => this.updateRates(source, pockets),
+      10000
+    );
+  };
+
+  updateRates = async (source, pockets) => {
+    const rates = await fetchRate(source, pockets);
+
+    this.props.setExchangeRate(rates);
+  };
+
+  render() {
+    const {
+      selectedCurrency,
+      targetRate,
+      exchangeDisabled,
+      swapPockets,
+      exchangeCurrency
+    } = this.props;
+
+    return (
+      <>
+        <Header />
+        <ContentWrapper>
+          <div>
+            <PocketWrapper origin="source" />
+
+            <InfoRow>
+              <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
+              <ExchangeRate
+                selectedCurrency={selectedCurrency}
+                targetRate={targetRate}
+              />
+              <div />
+            </InfoRow>
+
+            <PocketWrapper origin="target" />
+          </div>
+          <ExchangeButton
+            disabled={exchangeDisabled}
+            onClick={exchangeCurrency}
+          >
+            Exchange
+          </ExchangeButton>
+        </ContentWrapper>
+      </>
+    );
   }
-`;
+}
 
-const Exchange = ({ exchangeDisabled, exchangeCurrency, swapPockets }) => (
-  <>
-    <Header />
-    <ContentWrapper>
-      <div>
-        <PocketWrapper origin="source" />
-        <InfoRow>
-          <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
-          <ExchangeRate>$1 = EUR 22</ExchangeRate>
-        </InfoRow>
-        <PocketWrapper origin="target" />
-      </div>
-      <ExchangeButton disabled={exchangeDisabled} onClick={exchangeCurrency}>
-        Exchange
-      </ExchangeButton>
-    </ContentWrapper>
-  </>
-);
-
-const mapStateToProps = ({ exchange }) => ({
+const mapStateToProps = ({ exchange, rate }) => ({
+  pockets: exchange.pockets,
+  targetRate:
+    rate[exchange.selectedCurrency.source] &&
+    rate[exchange.selectedCurrency.source][exchange.selectedCurrency.target],
+  selectedCurrency: exchange.selectedCurrency,
   exchangeDisabled: isExchangeDisabled({ exchange })
 });
 
@@ -106,6 +123,9 @@ const mapDispatchToProps = dispatch => ({
   },
   swapPockets: () => {
     dispatch(swapCurrencyPair());
+  },
+  setExchangeRate: rates => {
+    dispatch(setExchangeRate(rates));
   }
 });
 

@@ -46,11 +46,12 @@ export function exchangeCurrency(source, target, amount) {
   };
 }
 
-export function changeAmount(origin, amount) {
+export function changeAmount(origin, amount, rate) {
   return {
     type: CHANGE_AMOUNT,
     origin,
-    amount
+    amount,
+    rate
   };
 }
 
@@ -80,6 +81,10 @@ export default function reducer(state = initialState, action) {
         selectedCurrency: {
           ...state.selectedCurrency,
           [origin]: currency
+        },
+        currentValue: {
+          source: '',
+          target: ''
         }
       };
     }
@@ -90,31 +95,29 @@ export default function reducer(state = initialState, action) {
         selectedCurrency: {
           source: state.selectedCurrency.target,
           target: state.selectedCurrency.source
+        },
+        currentValue: {
+          source: state.currentValue.target,
+          target: state.currentValue.source
         }
       };
     }
 
     case CHANGE_AMOUNT: {
-      const { origin, amount } = action;
+      const { origin, amount, rate } = action;
       const opposite = origin === 'source' ? 'target' : 'source';
 
-      if (amount === '') {
-        return {
-          ...state,
-          currentValue: {
-            [origin]: amount,
-            [opposite]: state.currentValue[opposite]
-          }
-        };
-      }
-
       const fixedAmount = fixDecimalPoints(amount);
+      const oppositeAmount =
+        origin === 'source'
+          ? Big(fixedAmount).times(rate)
+          : Big(fixedAmount).div(rate);
 
       return {
         ...state,
         currentValue: {
-          [origin]: Big(fixedAmount),
-          [opposite]: fixDecimalPoints(Big(fixedAmount).times(1.2))
+          [origin]: amount ? Big(fixedAmount) : amount,
+          [opposite]: amount ? fixDecimalPoints(oppositeAmount) : amount
         }
       };
     }
@@ -161,6 +164,8 @@ export function isExchangeDisabled({ exchange }) {
   const sourceAmount = exchange.currentValue.source;
 
   return (
-    !sourceAmount || sourceAmount > exchange.pockets[sourceCurrency].amount
+    !sourceAmount ||
+    parseFloat(sourceAmount) >
+      parseFloat(exchange.pockets[sourceCurrency].amount)
   );
 }

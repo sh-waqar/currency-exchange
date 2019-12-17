@@ -52,6 +52,7 @@ const PocketWrapper = ({
   currency,
   balance,
   amount,
+  rate,
   lowBalance,
   supportedPockets,
   ignoredCurrency,
@@ -71,7 +72,7 @@ const PocketWrapper = ({
           ))}
       </CurrencySelector>
       <Balance lowBalance={origin === 'source' && lowBalance}>
-        Balance: {formatCurrency(balance, currency)}
+        Balance: {formatCurrency({ currency })(balance)}
       </Balance>
     </div>
     <ExchangeInput
@@ -80,15 +81,16 @@ const PocketWrapper = ({
       placeholder="0"
       min="0"
       value={`${amount}`}
-      onChange={({ target }) => onAmountChange(target.value)}
+      onChange={({ target }) => onAmountChange(target.value, rate)}
     />
   </Wrapper>
 );
 
-const mapStateToProps = ({ exchange }, { origin }) => {
+const mapStateToProps = ({ exchange, rate }, { origin }) => {
   const currency = exchange.selectedCurrency[origin];
   const lowBalance =
-    exchange.currentValue[origin] > exchange.pockets[currency].amount;
+    parseFloat(exchange.currentValue[origin]) >
+    parseFloat(exchange.pockets[currency].amount);
   const ignoredCurrency =
     origin === 'source'
       ? exchange.selectedCurrency.target
@@ -100,7 +102,10 @@ const mapStateToProps = ({ exchange }, { origin }) => {
     balance: exchange.pockets[currency].amount,
     ignoredCurrency,
     amount: exchange.currentValue[origin],
-    lowBalance
+    lowBalance,
+    rate:
+      rate[exchange.selectedCurrency.source] &&
+      rate[exchange.selectedCurrency.source][exchange.selectedCurrency.target]
   };
 };
 
@@ -108,8 +113,8 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
   onCurrencyChange: currency => {
     dispatch(changeCurrencyPair(ownProps.origin, currency));
   },
-  onAmountChange: amount => {
-    dispatch(changeAmount(ownProps.origin, amount));
+  onAmountChange: (amount, rate) => {
+    dispatch(changeAmount(ownProps.origin, amount, rate));
   }
 });
 
