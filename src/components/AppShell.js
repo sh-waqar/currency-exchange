@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import colors from '../colors';
+import colors from 'colors';
 
 export default styled.div`
-  width: 440px;
+  max-width: 440px;
+  width: 100%;
   height: 660px;
   margin-top: 20px;
   display: flex;

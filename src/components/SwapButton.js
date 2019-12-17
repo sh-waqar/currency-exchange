@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import colors from '../colors';
+import colors from 'colors';
 
 export default styled.button`
   width: 32px;

@@ -2,13 +2,13 @@ import React from 'react';
 import { Provider } from 'react-redux';
 
 import 'normalize.css';
-import './index.css';
+import 'index.css';
 
-import configureStore from './redux/configureStore';
+import configureStore from 'redux/configureStore';
 
-import Container from './components/Container';
-import AppShell from './components/AppShell';
-import Exchange from './pages/Exchange';
+import Container from 'components/Container';
+import AppShell from 'components/AppShell';
+import Exchange from 'pages/Exchange';
 
 const store = configureStore({});
 

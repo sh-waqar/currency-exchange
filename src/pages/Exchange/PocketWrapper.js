@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
-import { changeCurrencyPair, changeAmount } from '../redux/modules/exchange';
+import { changeCurrencyPair, changeAmount } from 'redux/modules/exchange';
 
-import colors from '../colors';
-import formatCurrency from '../helpers/formatCurrency';
+import colors from 'colors';
+import formatCurrency from 'helpers/formatCurrency';
 
 const Wrapper = styled.div`
   display: flex;
@@ -20,6 +20,10 @@ const Wrapper = styled.div`
       target: colors.gray
     }[props.origin])};
   height: 120px;
+`;
+
+const BalanceWrapper = styled.div`
+  min-width: 130px;
 `;
 
 const CurrencySelector = styled.select`
@@ -37,6 +41,7 @@ const Balance = styled.div`
 `;
 
 export const ExchangeInput = styled.input`
+  width: 100%;
   border: 0;
   font-size: 28px;
   text-align: right;
@@ -61,7 +66,7 @@ const PocketWrapper = ({
   onAmountChange
 }) => (
   <Wrapper origin={origin}>
-    <div>
+    <BalanceWrapper>
       <CurrencySelector
         value={currency}
         onChange={({ target }) => onCurrencyChange(target.value)}
@@ -75,7 +80,7 @@ const PocketWrapper = ({
       <Balance lowBalance={origin === 'source' && lowBalance}>
         Balance: {formatCurrency({ currency })(balance)}
       </Balance>
-    </div>
+    </BalanceWrapper>
     <ExchangeInput
       type="number"
       autoFocus={origin === 'source'}
@@ -90,7 +95,7 @@ const PocketWrapper = ({
 PocketWrapper.propTypes = {
   origin: PropTypes.oneOf(['source', 'target']).isRequired,
   currency: PropTypes.string.isRequired,
-  balance: PropTypes.number.isRequired,
+  balance: PropTypes.string.isRequired,
   amount: PropTypes.string.isRequired,
   rate: PropTypes.number,
   lowBalance: PropTypes.bool.isRequired,

@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import colors from '../colors';
-import formatCurrency from '../helpers/formatCurrency';
+import colors from 'colors';
+import formatCurrency from 'helpers/formatCurrency';
 
 const Wrapper = styled.div`
   color: ${colors.blue};

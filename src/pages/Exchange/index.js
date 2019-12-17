@@ -8,15 +8,16 @@ import {
   exchangeCurrency,
   swapCurrencyPair,
   isExchangeDisabled
-} from '../redux/modules/exchange';
-import { setExchangeRate } from '../redux/modules/rate';
-import { fetchRate } from '../api';
+} from 'redux/modules/exchange';
+import { setExchangeRate } from 'redux/modules/rate';
+import { fetchRate } from 'api';
 
-import Header from '../components/Header';
-import PocketWrapper from '../components/PocketWrapper';
-import ExchangeButton from '../components/ExchangeButton';
-import ExchangeRate from '../components/ExchangeRate';
-import SwapButton from '../components/SwapButton';
+import Header from 'components/Header';
+import ExchangeButton from 'components/ExchangeButton';
+import ExchangeRate from 'components/ExchangeRate';
+import SwapButton from 'components/SwapButton';
+
+import PocketWrapper from './PocketWrapper';
 
 const ContentWrapper = styled.div`
   display: flex;
@@ -135,7 +136,7 @@ class Exchange extends React.Component {
 
 const pocketShape = PropTypes.shape({
   currency: PropTypes.string.isRequired,
-  amount: PropTypes.number.isRequired
+  amount: PropTypes.string.isRequired
 });
 
 Exchange.propTypes = {
