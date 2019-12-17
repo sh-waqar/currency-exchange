@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import PageVisibility from 'react-page-visibility';
 
 import {
   exchangeCurrency,
@@ -49,13 +50,17 @@ class Exchange extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    this.clearFetcherInstance();
+  }
+
   scheduleRateFetcher = source => {
     const pockets = Object.keys(this.props.pockets).filter(
       pocket => pocket !== source
     );
 
     // Clear interval instance if already there
-    this.fetcherInstance && clearInterval(this.fetcherInstance);
+    this.clearFetcherInstance();
 
     this.updateRates(source, pockets);
     this.fetcherInstance = setInterval(
@@ -70,6 +75,23 @@ class Exchange extends React.Component {
     this.props.setExchangeRate(rates);
   };
 
+  handleVisibilityChange = isVisible => {
+    if (isVisible) {
+      this.scheduleRateFetcher(this.props.selectedCurrency.source);
+    } else {
+      this.clearFetcherInstance();
+    }
+  };
+
+  clearFetcherInstance = () => {
+    if (!this.fetcherInstance) {
+      return;
+    }
+
+    clearInterval(this.fetcherInstance);
+    this.fetcherInstance = null;
+  };
+
   render() {
     const {
       selectedCurrency,
@@ -80,31 +102,33 @@ class Exchange extends React.Component {
     } = this.props;
 
     return (
-      <>
-        <Header />
-        <ContentWrapper>
-          <div>
-            <PocketWrapper origin="source" />
+      <PageVisibility onChange={this.handleVisibilityChange}>
+        <>
+          <Header />
+          <ContentWrapper>
+            <div>
+              <PocketWrapper origin="source" />
 
-            <InfoRow>
-              <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
-              <ExchangeRate
-                selectedCurrency={selectedCurrency}
-                targetRate={targetRate}
-              />
-              <div />
-            </InfoRow>
+              <InfoRow>
+                <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
+                <ExchangeRate
+                  selectedCurrency={selectedCurrency}
+                  targetRate={targetRate}
+                />
+                <div />
+              </InfoRow>
 
-            <PocketWrapper origin="target" />
-          </div>
-          <ExchangeButton
-            disabled={exchangeDisabled}
-            onClick={exchangeCurrency}
-          >
-            Exchange
-          </ExchangeButton>
-        </ContentWrapper>
-      </>
+              <PocketWrapper origin="target" />
+            </div>
+            <ExchangeButton
+              disabled={exchangeDisabled}
+              onClick={exchangeCurrency}
+            >
+              Exchange
+            </ExchangeButton>
+          </ContentWrapper>
+        </>
+      </PageVisibility>
     );
   }
 }
