@@ -4,15 +4,15 @@ const initialState = {
   pockets: {
     EUR: {
       currency: 'EUR',
-      amount: 231
+      amount: '230'
     },
     USD: {
       currency: 'USD',
-      amount: 351
+      amount: '350'
     },
     GBP: {
       currency: 'GBP',
-      amount: 653
+      amount: '650'
     }
   },
   selectedCurrency: {

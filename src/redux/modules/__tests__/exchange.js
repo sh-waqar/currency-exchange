@@ -14,15 +14,15 @@ const initialState = {
   pockets: {
     EUR: {
       currency: 'EUR',
-      amount: '20'
+      amount: '230'
     },
     USD: {
       currency: 'USD',
-      amount: '20'
+      amount: '350'
     },
     GBP: {
       currency: 'GBP',
-      amount: '20'
+      amount: '650'
     }
   },
   selectedCurrency: {
@@ -93,6 +93,10 @@ describe('swapCurrencyPair', () => {
 });
 
 // Reducer
+
+it('returns the intial state', () => {
+  expect(exchangeReducer(undefined, {})).toEqual(initialState);
+});
 
 describe('CHANGE_CURRENCY_PAIR', () => {
   it('change the currency pair for given source and reset the input values', () => {
@@ -206,6 +210,22 @@ describe('CHANGE_AMOUNT', () => {
 
     expect(changes).toEqual(expectedState);
   });
+
+  it('set empty string', () => {
+    const changes = exchangeReducer(
+      initialState,
+      changeAmount('source', '', 1.1)
+    );
+    const expectedState = {
+      ...initialState,
+      currentValue: {
+        source: '',
+        target: ''
+      }
+    };
+
+    expect(changes).toEqual(expectedState);
+  });
 });
 
 describe('EXCHANGE_CURRENCY', () => {
@@ -228,11 +248,11 @@ describe('EXCHANGE_CURRENCY', () => {
         ...initialState.pockets,
         EUR: {
           currency: 'EUR',
-          amount: '10'
+          amount: '220'
         },
         GBP: {
           currency: 'GBP',
-          amount: '35'
+          amount: '665'
         }
       },
       currentValue: {
@@ -252,23 +272,23 @@ describe('isExchangeDisabled', () => {
     expect(isExchangeDisabled(initialState)).toEqual(true);
   });
 
-  it('should be true if source amount is bigger then pocket money', () => {
+  it('should be true if source amount is bigger than pocket money', () => {
     expect(
       isExchangeDisabled({
         ...initialState,
         currentValue: {
-          source: '100'
+          source: '700'
         }
       })
     ).toEqual(true);
   });
 
-  it('should be false if source amount is positive and less then pocket money', () => {
+  it('should be false if source amount is positive and less than pocket money', () => {
     expect(
       isExchangeDisabled({
         ...initialState,
         currentValue: {
-          source: '5'
+          source: '100'
         }
       })
     ).toEqual(false);

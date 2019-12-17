@@ -19,6 +19,10 @@ describe('setExchangeRate', () => {
 
 // Reducer
 
+it('returns the intial state', () => {
+  expect(rateReducer(undefined, {})).toEqual(initialState);
+});
+
 it('handles SET_EXCHANGE_RATE and transform the data correctly', () => {
   const changes = rateReducer(initialState, setExchangeRate(mockRateObject));
   const expectedState = {
