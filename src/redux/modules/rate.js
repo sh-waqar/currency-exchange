@@ -2,7 +2,7 @@ const initialState = {};
 
 // Actions
 
-const SET_EXCHANGE_RATE = 'rate/SET_EXCHANGE_RATE';
+export const SET_EXCHANGE_RATE = 'rate/SET_EXCHANGE_RATE';
 
 // Action creators
 

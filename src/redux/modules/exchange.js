@@ -30,19 +30,16 @@ const fixDecimalPoints = number => Math.floor(number * 100) / 100;
 
 // Actions
 
-const CHANGE_AMOUNT = 'exchange/CHANGE_AMOUNT';
-const EXCHANGE_CURRENCY = 'exchange/EXCHANGE_CURRENCY';
-const CHANGE_CURRENCY_PAIR = 'exchange/CHANGE_CURRENCY_PAIR';
-const SWAP_CURRENCY_PAIR = 'exchange/SWAP_CURRENCY_PAIR';
+export const CHANGE_AMOUNT = 'exchange/CHANGE_AMOUNT';
+export const EXCHANGE_CURRENCY = 'exchange/EXCHANGE_CURRENCY';
+export const CHANGE_CURRENCY_PAIR = 'exchange/CHANGE_CURRENCY_PAIR';
+export const SWAP_CURRENCY_PAIR = 'exchange/SWAP_CURRENCY_PAIR';
 
 // Action creators
 
-export function exchangeCurrency(source, target, amount) {
+export function exchangeCurrency() {
   return {
-    type: EXCHANGE_CURRENCY,
-    source,
-    target,
-    amount
+    type: EXCHANGE_CURRENCY
   };
 }
 
@@ -50,7 +47,7 @@ export function changeAmount(origin, amount, rate) {
   return {
     type: CHANGE_AMOUNT,
     origin,
-    amount,
+    amount: amount && parseFloat(amount),
     rate
   };
 }
@@ -107,6 +104,10 @@ export default function reducer(state = initialState, action) {
       const { origin, amount, rate } = action;
       const opposite = origin === 'source' ? 'target' : 'source';
 
+      if (amount < 0) {
+        return state;
+      }
+
       const fixedAmount = fixDecimalPoints(amount);
       const oppositeAmount =
         origin === 'source'
@@ -137,13 +138,15 @@ export default function reducer(state = initialState, action) {
           ...state.pockets,
           [sourceCurrency]: {
             ...state.pockets[sourceCurrency],
-            amount: Big(state.pockets[sourceCurrency].amount).minus(
-              sourceAmount
-            )
+            amount: Big(state.pockets[sourceCurrency].amount)
+              .minus(sourceAmount)
+              .toString()
           },
           [targetCurrency]: {
             ...state.pockets[targetCurrency],
-            amount: Big(state.pockets[targetCurrency].amount).add(targetAmount)
+            amount: Big(state.pockets[targetCurrency].amount)
+              .add(targetAmount)
+              .toString()
           }
         },
         currentValue: {
@@ -161,13 +164,16 @@ export default function reducer(state = initialState, action) {
 
 // Selectors
 
-export function isExchangeDisabled({ exchange }) {
-  const sourceCurrency = exchange.selectedCurrency.source;
-  const sourceAmount = exchange.currentValue.source;
+export function isExchangeDisabled({
+  selectedCurrency,
+  currentValue,
+  pockets
+}) {
+  const sourceCurrency = selectedCurrency.source;
+  const sourceAmount = currentValue.source;
 
   return (
     !sourceAmount ||
-    parseFloat(sourceAmount) >
-      parseFloat(exchange.pockets[sourceCurrency].amount)
+    parseFloat(sourceAmount) > parseFloat(pockets[sourceCurrency].amount)
   );
 }

@@ -133,7 +133,7 @@ const mapStateToProps = ({ exchange, rate }) => ({
     rate[exchange.selectedCurrency.source] &&
     rate[exchange.selectedCurrency.source][exchange.selectedCurrency.target],
   selectedCurrency: exchange.selectedCurrency,
-  exchangeDisabled: isExchangeDisabled({ exchange })
+  exchangeDisabled: isExchangeDisabled(exchange)
 });
 
 const mapDispatchToProps = dispatch => ({
