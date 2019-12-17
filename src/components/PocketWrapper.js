@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 
 import { changeCurrencyPair, changeAmount } from '../redux/modules/exchange';
 
@@ -85,6 +86,19 @@ const PocketWrapper = ({
     />
   </Wrapper>
 );
+
+PocketWrapper.propTypes = {
+  origin: PropTypes.oneOf(['source', 'target']).isRequired,
+  currency: PropTypes.string.isRequired,
+  balance: PropTypes.number.isRequired,
+  amount: PropTypes.string.isRequired,
+  rate: PropTypes.number,
+  lowBalance: PropTypes.bool.isRequired,
+  supportedPockets: PropTypes.array.isRequired,
+  ignoredCurrency: PropTypes.string.isRequired,
+  onCurrencyChange: PropTypes.func.isRequired,
+  onAmountChange: PropTypes.func.isRequired
+};
 
 const mapStateToProps = ({ exchange, rate }, { origin }) => {
   const currency = exchange.selectedCurrency[origin];

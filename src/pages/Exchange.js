@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 
 import {
   exchangeCurrency,
@@ -107,6 +108,24 @@ class Exchange extends React.Component {
     );
   }
 }
+
+const pocketShape = PropTypes.shape({
+  currency: PropTypes.string.isRequired,
+  amount: PropTypes.number.isRequired
+});
+
+Exchange.propTypes = {
+  pockets: PropTypes.objectOf(pocketShape).isRequired,
+  targetRate: PropTypes.number,
+  selectedCurrency: PropTypes.shape({
+    source: PropTypes.string.isRequired,
+    target: PropTypes.string.isRequired
+  }).isRequired,
+  exchangeDisabled: PropTypes.bool.isRequired,
+  exchangeCurrency: PropTypes.func.isRequired,
+  swapPockets: PropTypes.func.isRequired,
+  setExchangeRate: PropTypes.func.isRequired
+};
 
 const mapStateToProps = ({ exchange, rate }) => ({
   pockets: exchange.pockets,

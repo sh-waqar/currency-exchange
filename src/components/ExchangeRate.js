@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import colors from '../colors';
 import formatCurrency from '../helpers/formatCurrency';
@@ -30,6 +31,14 @@ const ExchangeRate = ({ selectedCurrency, targetRate }) => {
       {targetRate ? targetRateFormat(targetRate) : '...'}
     </Wrapper>
   );
+};
+
+ExchangeRate.propTypes = {
+  selectedCurrency: PropTypes.shape({
+    source: PropTypes.string.isRequired,
+    target: PropTypes.string.isRequired
+  }).isRequired,
+  targetRate: PropTypes.number
 };
 
 export default ExchangeRate;

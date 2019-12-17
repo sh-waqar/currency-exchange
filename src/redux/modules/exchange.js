@@ -116,8 +116,10 @@ export default function reducer(state = initialState, action) {
       return {
         ...state,
         currentValue: {
-          [origin]: amount ? Big(fixedAmount) : amount,
-          [opposite]: amount ? fixDecimalPoints(oppositeAmount) : amount
+          [origin]: amount ? Big(fixedAmount).toString() : amount,
+          [opposite]: amount
+            ? fixDecimalPoints(oppositeAmount).toString()
+            : amount
         }
       };
     }
