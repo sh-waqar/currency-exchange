@@ -22,9 +22,15 @@ const Title = styled.h1`
   margin-left: 10px;
 `;
 
-const Header = () => (
+const Header = ({ onClose }) => (
   <Wrapper>
-    <CloseBtn>&times;</CloseBtn>
+    <CloseBtn
+      aria-label="Close currency exchange section"
+      data-testid="close-button"
+      onClick={onClose}
+    >
+      &times;
+    </CloseBtn>
     <Title>Exchange</Title>
   </Wrapper>
 );

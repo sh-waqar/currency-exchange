@@ -7,7 +7,14 @@ import exchangeReducer, {
   changeAmount,
   changeCurrencyPair,
   swapCurrencyPair,
-  isExchangeDisabled
+  getIsExchangeDisabled,
+  getHasLowBalance,
+  getPocketCurrencies,
+  getSupportedPockets,
+  getRealTimeValue,
+  getCurrentRate,
+  getActiveInput,
+  getBalance
 } from '../exchange';
 
 const initialState = {
@@ -32,6 +39,10 @@ const initialState = {
   currentValue: {
     source: '',
     target: ''
+  },
+  lastActiveInput: {
+    source: false,
+    target: false
   }
 };
 
@@ -46,14 +57,14 @@ describe('exchangeCurrency', () => {
 });
 
 describe('changeAmount', () => {
-  it('creates the action with origin, amount, and rate in payload and parseFloat the amount', () => {
+  it('creates the action with origin, amount, and rate in payload', () => {
     const origin = 'source';
     const rate = 1.1;
 
     expect(changeAmount(origin, '100', rate)).toEqual({
       type: CHANGE_AMOUNT,
       origin,
-      amount: 100,
+      amount: '100',
       rate
     });
   });
@@ -154,9 +165,13 @@ describe('CHANGE_AMOUNT', () => {
     );
     const expectedState = {
       ...initialState,
+      lastActiveInput: {
+        source: true,
+        target: false
+      },
       currentValue: {
         source: '50',
-        target: '55'
+        target: '55.00'
       }
     };
 
@@ -170,6 +185,10 @@ describe('CHANGE_AMOUNT', () => {
     );
     const expectedState = {
       ...initialState,
+      lastActiveInput: {
+        source: false,
+        target: true
+      },
       currentValue: {
         source: '45.45',
         target: '50'
@@ -186,6 +205,10 @@ describe('CHANGE_AMOUNT', () => {
     );
     const expectedState = {
       ...initialState,
+      lastActiveInput: {
+        source: true,
+        target: false
+      },
       currentValue: {
         source: '50.12',
         target: '55.13'
@@ -202,6 +225,10 @@ describe('CHANGE_AMOUNT', () => {
     );
     const expectedState = {
       ...initialState,
+      lastActiveInput: {
+        source: true,
+        target: false
+      },
       currentValue: {
         source: '',
         target: ''
@@ -215,6 +242,66 @@ describe('CHANGE_AMOUNT', () => {
     const changes = exchangeReducer(
       initialState,
       changeAmount('source', '', 1.1)
+    );
+    const expectedState = {
+      ...initialState,
+      lastActiveInput: {
+        source: true,
+        target: false
+      },
+      currentValue: {
+        source: '',
+        target: ''
+      }
+    };
+
+    expect(changes).toEqual(expectedState);
+  });
+
+  it('handle large numbers in source', () => {
+    const changes = exchangeReducer(
+      initialState,
+      changeAmount('source', '9999999999999', 3.4)
+    );
+    const expectedState = {
+      ...initialState,
+      lastActiveInput: {
+        source: true,
+        target: false
+      },
+      currentValue: {
+        source: '9999999999999',
+        target: '33999999999996.60'
+      }
+    };
+
+    expect(changes).toEqual(expectedState);
+  });
+
+  it('handle large numbers in target', () => {
+    const changes = exchangeReducer(
+      initialState,
+      changeAmount('target', '2119999999999788', 212)
+    );
+    const expectedState = {
+      ...initialState,
+      lastActiveInput: {
+        source: false,
+        target: true
+      },
+      currentValue: {
+        source: '9999999999999.00',
+        target: '2119999999999788'
+      }
+    };
+
+    expect(changes).toEqual(expectedState);
+  });
+
+  it('allow maximum of 1 trillion in source', () => {
+    const changes = exchangeReducer(
+      initialState,
+      changeAmount('source', '99999999999999', 3.4)
     );
     const expectedState = {
       ...initialState,
@@ -267,17 +354,37 @@ describe('EXCHANGE_CURRENCY', () => {
 
 // Selector
 
-describe('isExchangeDisabled', () => {
-  it('should be true if source input is empty', () => {
-    expect(isExchangeDisabled(initialState)).toEqual(true);
+describe('getBalance', () => {
+  it('should return the balance for source and target based on selected currencies', () => {
+    expect(getBalance({ exchange: initialState })).toEqual({
+      source: '230',
+      target: '650'
+    });
+  });
+});
+
+describe('getActiveInput', () => {
+  it('should return last active input object', () => {
+    expect(getActiveInput({ exchange: { ...initialState } })).toEqual({
+      source: false,
+      target: false
+    });
+  });
+});
+
+describe('getHasLowBalance', () => {
+  it('should be false if source input is empty', () => {
+    expect(getHasLowBalance({ exchange: initialState })).toEqual(false);
   });
 
   it('should be true if source amount is bigger than pocket money', () => {
     expect(
-      isExchangeDisabled({
-        ...initialState,
-        currentValue: {
-          source: '700'
+      getHasLowBalance({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: '700'
+          }
         }
       })
     ).toEqual(true);
@@ -285,12 +392,154 @@ describe('isExchangeDisabled', () => {
 
   it('should be false if source amount is positive and less than pocket money', () => {
     expect(
-      isExchangeDisabled({
-        ...initialState,
-        currentValue: {
-          source: '100'
+      getHasLowBalance({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: '100'
+          }
         }
       })
     ).toEqual(false);
+  });
+});
+
+describe('getIsExchangeDisabled', () => {
+  it('should be true if source input is empty', () => {
+    expect(getIsExchangeDisabled({ exchange: initialState })).toEqual(true);
+  });
+
+  it('should be true if source amount is bigger than pocket money', () => {
+    expect(
+      getIsExchangeDisabled({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: '700'
+          }
+        }
+      })
+    ).toEqual(true);
+  });
+
+  it('should be false if source amount is positive and less than pocket money', () => {
+    expect(
+      getIsExchangeDisabled({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: '100'
+          }
+        }
+      })
+    ).toEqual(false);
+  });
+});
+
+describe('getPocketCurrencies', () => {
+  it('should return empty array for default case', () => {
+    expect(
+      getPocketCurrencies({
+        exchange: {}
+      })
+    ).toEqual([]);
+  });
+
+  it('should return pocket currencies array', () => {
+    expect(
+      getPocketCurrencies({
+        exchange: initialState
+      })
+    ).toEqual(['EUR', 'USD', 'GBP']);
+  });
+});
+
+describe('getSupportedPockets', () => {
+  it('should not include target currency for source currency dropdown and vice versa', () => {
+    expect(
+      getSupportedPockets({
+        exchange: initialState
+      })
+    ).toEqual({
+      source: ['EUR', 'USD'],
+      target: ['USD', 'GBP']
+    });
+  });
+});
+
+describe('getRealTimeValue', () => {
+  it('should get the realtime value for source and target based on current exchange rate', () => {
+    expect(
+      getRealTimeValue({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: 100,
+            target: 122
+          }
+        },
+        rate: {
+          EUR: {
+            USD: 1.11,
+            GBP: 1.22
+          }
+        }
+      })
+    ).toEqual({
+      source: '100.00',
+      target: '122.00'
+    });
+  });
+
+  it('should return empty string if amount is 0 or malformed input', () => {
+    expect(
+      getRealTimeValue({
+        exchange: {
+          ...initialState,
+          currentValue: {
+            source: '',
+            target: ''
+          }
+        }
+      })
+    ).toEqual({
+      source: '',
+      target: ''
+    });
+  });
+});
+
+describe('getCurrentRate', () => {
+  it('should not return any exchange rate if rates are not loaded', () => {
+    expect(
+      getCurrentRate({
+        exchange: {
+          selectedCurrency: {
+            source: 'GBP',
+            target: 'USD'
+          }
+        },
+        rate: {}
+      })
+    ).toBeUndefined();
+  });
+
+  it('should return the current exchange rate based on source and target selected currencies', () => {
+    expect(
+      getCurrentRate({
+        exchange: {
+          selectedCurrency: {
+            source: 'GBP',
+            target: 'USD'
+          }
+        },
+        rate: {
+          GBP: {
+            EUR: 1.1,
+            USD: 1.1
+          }
+        }
+      })
+    ).toEqual(1.1);
   });
 });

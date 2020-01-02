@@ -1,16 +1,28 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { connect } from 'react-redux';
+import { createStructuredSelector } from 'reselect';
 import PropTypes from 'prop-types';
 import PageVisibility from 'react-page-visibility';
 
 import {
   exchangeCurrency,
   swapCurrencyPair,
-  isExchangeDisabled
+  getPocketCurrencies,
+  getIsExchangeDisabled,
+  getCurrentRate,
+  getSupportedPockets,
+  getSourceCurrency,
+  getTargetCurrency
 } from 'redux/modules/exchange';
-import { setExchangeRate } from 'redux/modules/rate';
-import { fetchRate } from 'api';
+import {
+  fetchRate,
+  fetchRateSuccess,
+  fetchRateError,
+  getIsRateLoading,
+  getRateHasError
+} from 'redux/modules/rate';
+import { fetchExchangeRate } from 'api';
 
 import Header from 'components/Header';
 import ExchangeButton from 'components/ExchangeButton';
@@ -19,7 +31,7 @@ import SwapButton from 'components/SwapButton';
 
 import PocketWrapper from './PocketWrapper';
 
-const ContentWrapper = styled.div`
+const FormWrapper = styled.form`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -35,19 +47,27 @@ const InfoRow = styled.div`
   padding: 0 12px;
 `;
 
+const ErrorMessage = styled.div`
+  padding: 12px;
+  background-color: #000;
+  color: #fff;
+  margin: 0 18px 20px;
+  border-radius: 4px;
+  text-align: center;
+`;
+
 class Exchange extends React.Component {
   constructor(props) {
     super(props);
 
-    this.scheduleRateFetcher(this.props.selectedCurrency.source);
+    this.scheduleRateFetcher(this.props.sourceCurrency);
   }
 
-  componentDidUpdate({ selectedCurrency }) {
-    const shouldFetch =
-      selectedCurrency.source !== this.props.selectedCurrency.source;
+  componentDidUpdate({ sourceCurrency }) {
+    const shouldFetch = sourceCurrency !== this.props.sourceCurrency;
 
     if (shouldFetch) {
-      this.scheduleRateFetcher(this.props.selectedCurrency.source);
+      this.scheduleRateFetcher(this.props.sourceCurrency);
     }
   }
 
@@ -56,9 +76,7 @@ class Exchange extends React.Component {
   }
 
   scheduleRateFetcher = source => {
-    const pockets = Object.keys(this.props.pockets).filter(
-      pocket => pocket !== source
-    );
+    const pockets = this.props.supportedPockets.target;
 
     // Clear interval instance if already there
     this.clearFetcherInstance();
@@ -71,14 +89,20 @@ class Exchange extends React.Component {
   };
 
   updateRates = async (source, pockets) => {
-    const rates = await fetchRate(source, pockets);
+    this.props.fetchRate(source);
 
-    this.props.setExchangeRate(rates);
+    try {
+      const rates = await fetchExchangeRate(source, pockets);
+
+      this.props.fetchRateSuccess(rates);
+    } catch (e) {
+      this.props.fetchRateError(source);
+    }
   };
 
   handleVisibilityChange = isVisible => {
     if (isVisible) {
-      this.scheduleRateFetcher(this.props.selectedCurrency.source);
+      this.scheduleRateFetcher(this.props.sourceCurrency);
     } else {
       this.clearFetcherInstance();
     }
@@ -93,72 +117,108 @@ class Exchange extends React.Component {
     this.fetcherInstance = null;
   };
 
+  closeSection = () => {
+    alert('Closing section');
+  };
+
+  submitForm = evt => {
+    this.props.exchangeCurrency();
+    evt.preventDefault();
+  };
+
   render() {
     const {
-      selectedCurrency,
+      sourceCurrency,
+      targetCurrency,
       targetRate,
-      exchangeDisabled,
-      swapPockets,
-      exchangeCurrency
+      isExchangeDisabled,
+      rateHasError,
+      supportedPockets,
+      swapPockets
     } = this.props;
 
     return (
       <PageVisibility onChange={this.handleVisibilityChange}>
         <>
-          <Header />
-          <ContentWrapper>
+          <Header onClose={this.closeSection} />
+          <FormWrapper onSubmit={this.submitForm}>
             <div>
-              <PocketWrapper origin="source" />
+              <PocketWrapper
+                origin="source"
+                currency={sourceCurrency}
+                supportedPockets={supportedPockets.source}
+              />
 
               <InfoRow>
-                <SwapButton onClick={swapPockets}>&#8645;</SwapButton>
+                <SwapButton
+                  type="button"
+                  data-testid="swap-button"
+                  aria-label="Swap source and target currencies"
+                  onClick={swapPockets}
+                >
+                  &#8645;
+                </SwapButton>
                 <ExchangeRate
-                  selectedCurrency={selectedCurrency}
+                  sourceCurrency={sourceCurrency}
+                  targetCurrency={targetCurrency}
                   targetRate={targetRate}
                 />
                 <div />
               </InfoRow>
 
-              <PocketWrapper origin="target" />
+              <PocketWrapper
+                origin="target"
+                currency={targetCurrency}
+                supportedPockets={supportedPockets.target}
+              />
             </div>
-            <ExchangeButton
-              disabled={exchangeDisabled}
-              onClick={exchangeCurrency}
-            >
-              Exchange
-            </ExchangeButton>
-          </ContentWrapper>
+            {rateHasError && (
+              <ErrorMessage role="alert" data-testid="error-message">
+                Fetching exchange rates failed
+              </ErrorMessage>
+            )}
+            {!rateHasError && (
+              <ExchangeButton
+                type="submit"
+                data-testid="exchange-button"
+                disabled={isExchangeDisabled}
+              >
+                Exchange
+              </ExchangeButton>
+            )}
+          </FormWrapper>
         </>
       </PageVisibility>
     );
   }
 }
 
-const pocketShape = PropTypes.shape({
-  currency: PropTypes.string.isRequired,
-  amount: PropTypes.string.isRequired
-});
-
 Exchange.propTypes = {
-  pockets: PropTypes.objectOf(pocketShape).isRequired,
+  pocketCurrencies: PropTypes.array.isRequired,
   targetRate: PropTypes.number,
-  selectedCurrency: PropTypes.shape({
-    source: PropTypes.string.isRequired,
-    target: PropTypes.string.isRequired
+  sourceCurrency: PropTypes.string.isRequired,
+  targetCurrency: PropTypes.string.isRequired,
+  supportedPockets: PropTypes.shape({
+    source: PropTypes.array.isRequired,
+    target: PropTypes.array.isRequired
   }).isRequired,
-  exchangeDisabled: PropTypes.bool.isRequired,
+  isExchangeDisabled: PropTypes.bool.isRequired,
   exchangeCurrency: PropTypes.func.isRequired,
   swapPockets: PropTypes.func.isRequired,
-  setExchangeRate: PropTypes.func.isRequired
+  fetchRate: PropTypes.func.isRequired,
+  fetchRateSuccess: PropTypes.func.isRequired,
+  fetchRateError: PropTypes.func.isRequired
 };
 
-const mapStateToProps = ({ exchange, rate }) => ({
-  pockets: exchange.pockets,
-  targetRate:
-    rate[exchange.selectedCurrency.source] &&
-    rate[exchange.selectedCurrency.source][exchange.selectedCurrency.target],
-  selectedCurrency: exchange.selectedCurrency,
-  exchangeDisabled: isExchangeDisabled(exchange)
+const mapStateToProps = createStructuredSelector({
+  pocketCurrencies: getPocketCurrencies,
+  targetRate: getCurrentRate,
+  supportedPockets: getSupportedPockets,
+  sourceCurrency: getSourceCurrency,
+  targetCurrency: getTargetCurrency,
+  isExchangeDisabled: getIsExchangeDisabled,
+  rateIsLoading: getIsRateLoading,
+  rateHasError: getRateHasError
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -168,8 +228,14 @@ const mapDispatchToProps = dispatch => ({
   swapPockets: () => {
     dispatch(swapCurrencyPair());
   },
-  setExchangeRate: rates => {
-    dispatch(setExchangeRate(rates));
+  fetchRate: source => {
+    dispatch(fetchRate(source));
+  },
+  fetchRateSuccess: rates => {
+    dispatch(fetchRateSuccess(rates));
+  },
+  fetchRateError: source => {
+    dispatch(fetchRateError(source));
   }
 });
 

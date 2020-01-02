@@ -1,9 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { connect } from 'react-redux';
+import AutosizeInput from 'react-input-autosize';
 import PropTypes from 'prop-types';
 
-import { changeCurrencyPair, changeAmount } from 'redux/modules/exchange';
+import {
+  changeCurrencyPair,
+  changeAmount,
+  getHasLowBalance,
+  getRealTimeValue,
+  getCurrentRate,
+  getActiveInput,
+  getCurrentValue,
+  getBalance
+} from 'redux/modules/exchange';
 
 import colors from 'colors';
 import formatCurrency from 'helpers/formatCurrency';
@@ -40,16 +50,26 @@ const Balance = styled.div`
   padding-left: 8px;
 `;
 
-export const ExchangeInput = styled.input`
-  width: 100%;
-  border: 0;
-  font-size: 28px;
-  text-align: right;
-  background-color: transparent;
-  outline: none;
+const InputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
-  &::placeholder {
-    color: ${colors.lightGray};
+const Sign = styled.span`
+  font-size: 28px;
+  vertical-align: top;
+`;
+
+const ExchangeInput = styled(AutosizeInput)`
+  & input {
+    border: 0;
+    font-size: 28px;
+    text-align: right;
+    background-color: transparent;
+
+    &::placeholder {
+      color: #8b959e;
+    }
   }
 `;
 
@@ -59,36 +79,50 @@ const PocketWrapper = ({
   balance,
   amount,
   rate,
+  isActive,
+  realTimeValue,
   lowBalance,
   supportedPockets,
-  ignoredCurrency,
   onCurrencyChange,
   onAmountChange
 }) => (
   <Wrapper origin={origin}>
     <BalanceWrapper>
       <CurrencySelector
+        data-testid={`${origin}-currency-selector`}
         value={currency}
+        aria-label={
+          origin === 'source'
+            ? 'Select source currency'
+            : 'Select target currency'
+        }
         onChange={({ target }) => onCurrencyChange(target.value)}
       >
-        {supportedPockets
-          .filter(pocket => pocket !== ignoredCurrency)
-          .map(pocket => (
-            <option key={pocket}>{pocket}</option>
-          ))}
+        {supportedPockets.map(pocket => (
+          <option key={pocket}>{pocket}</option>
+        ))}
       </CurrencySelector>
-      <Balance lowBalance={origin === 'source' && lowBalance}>
+      <Balance
+        data-testid={`${origin}-balance`}
+        lowBalance={origin === 'source' && lowBalance}
+      >
         Balance: {formatCurrency({ currency })(balance)}
       </Balance>
     </BalanceWrapper>
-    <ExchangeInput
-      type="number"
-      autoFocus={origin === 'source'}
-      placeholder="0"
-      min="0"
-      value={`${amount}`}
-      onChange={({ target }) => onAmountChange(target.value, rate)}
-    />
+    <InputWrapper>
+      {parseFloat(amount) > 0 && <Sign>{origin === 'source' ? '-' : '+'}</Sign>}
+      <ExchangeInput
+        data-testid={`${origin}-input`}
+        type="text"
+        autoFocus={origin === 'source'}
+        aria-label={
+          origin === 'source' ? 'Enter source amount' : 'Enter target amount'
+        }
+        placeholder="0"
+        value={isActive ? amount : realTimeValue}
+        onChange={({ target }) => onAmountChange(target.value, rate)}
+      />
+    </InputWrapper>
   </Wrapper>
 );
 
@@ -98,35 +132,22 @@ PocketWrapper.propTypes = {
   balance: PropTypes.string.isRequired,
   amount: PropTypes.string.isRequired,
   rate: PropTypes.number,
+  isActive: PropTypes.bool.isRequired,
+  realTimeValue: PropTypes.string.isRequired,
   lowBalance: PropTypes.bool.isRequired,
   supportedPockets: PropTypes.array.isRequired,
-  ignoredCurrency: PropTypes.string.isRequired,
   onCurrencyChange: PropTypes.func.isRequired,
   onAmountChange: PropTypes.func.isRequired
 };
 
-const mapStateToProps = ({ exchange, rate }, { origin }) => {
-  const currency = exchange.selectedCurrency[origin];
-  const lowBalance =
-    parseFloat(exchange.currentValue[origin]) >
-    parseFloat(exchange.pockets[currency].amount);
-  const ignoredCurrency =
-    origin === 'source'
-      ? exchange.selectedCurrency.target
-      : exchange.selectedCurrency.source;
-
-  return {
-    supportedPockets: Object.keys(exchange.pockets),
-    currency,
-    balance: exchange.pockets[currency].amount,
-    ignoredCurrency,
-    amount: exchange.currentValue[origin],
-    lowBalance,
-    rate:
-      rate[exchange.selectedCurrency.source] &&
-      rate[exchange.selectedCurrency.source][exchange.selectedCurrency.target]
-  };
-};
+const mapStateToProps = (state, props) => ({
+  realTimeValue: getRealTimeValue(state)[props.origin],
+  isActive: getActiveInput(state)[props.origin],
+  balance: getBalance(state)[props.origin],
+  amount: getCurrentValue(state)[props.origin],
+  lowBalance: getHasLowBalance(state),
+  rate: getCurrentRate(state)
+});
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
   onCurrencyChange: currency => {

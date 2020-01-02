@@ -1,11 +1,13 @@
 const API_URL = 'https://api.exchangeratesapi.io/latest';
 
-export const fetchRate = async (source, pockets) => {
+export const fetchExchangeRate = async (source, pockets) => {
   try {
-    return fetch(
+    const response = await fetch(
       `${API_URL}?base=${source}&symbols=${pockets.join(',')}`
-    ).then(res => res.json());
+    );
+
+    return response.json();
   } catch (e) {
-    return {};
+    throw new Error(e);
   }
 };
